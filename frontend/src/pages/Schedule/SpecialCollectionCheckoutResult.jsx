@@ -5,6 +5,7 @@ import { XCircle } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import ConfirmationIllustration from '../../assets/Confirmation.png'
 import SpecialCollectionPaymentSuccessCard from '../../components/SpecialCollectionPaymentSuccessCard.jsx'
+import { apiFetch } from '../../services/api.js'
 
 // Finalises special collection payments and surfaces follow-up actions.
 export default function SpecialCollectionCheckoutResult({ session = null }) {
@@ -39,7 +40,7 @@ export default function SpecialCollectionCheckoutResult({ session = null }) {
         async function syncCheckout() {
             try {
                 const statusQuery = redirectStatus ? `?status=${redirectStatus}` : ''
-                const response = await fetch(`/api/schedules/special/payment/checkout/${sessionId}${statusQuery}`)
+                const response = await apiFetch(`/api/schedules/special/payment/checkout/${sessionId}${statusQuery}`)
                 let payload = null
                 try {
                     payload = await response.json()
@@ -109,7 +110,7 @@ export default function SpecialCollectionCheckoutResult({ session = null }) {
 
         try {
             setDownloadPending(true)
-            const response = await fetch(`/api/schedules/special/requests/${requestId}/receipt?userId=${encodeURIComponent(userId)}`, {
+            const response = await apiFetch(`/api/schedules/special/requests/${requestId}/receipt?userId=${encodeURIComponent(userId)}`, {
                 headers: {
                     Accept: 'application/pdf',
                 },

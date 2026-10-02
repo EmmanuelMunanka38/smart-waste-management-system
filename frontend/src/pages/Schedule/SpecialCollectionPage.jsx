@@ -9,6 +9,7 @@ import { DigitalClock } from '@mui/x-date-pickers/DigitalClock'
 
 import { useNavigate } from 'react-router-dom'
 import ConfirmationIllustration from '../../assets/Confirmation.png'
+import { apiFetch } from '../../services/api.js'
 
 // Base shape for the resident special collection request form.
 const initialFormState = {
@@ -56,13 +57,6 @@ function formatCurrency(amount) {
   const value = Number(amount)
   if (!Number.isFinite(value)) return currencyFormatter.format(0)
   return currencyFormatter.format(value)
-}
-
-function toLocalDateValue(date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 function combineDateAndTime(date, time) {
@@ -126,7 +120,7 @@ function useSpecialCollectionConfig() {
 
     async function loadConfig() {
       try {
-        const response = await fetch('/api/schedules/special/config')
+        const response = await apiFetch('/api/schedules/special/config')
         const payload = await safeJson(response)
         if (cancelled) return
 
@@ -170,7 +164,7 @@ function useResidentRequests(sessionId, onSessionInvalid) {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const response = await fetch(`/api/schedules/special/my?userId=${encodeURIComponent(sessionId)}`)
+      const response = await apiFetch(`/api/schedules/special/my?userId=${encodeURIComponent(sessionId)}`)
       const payload = await safeJson(response)
 
       if (!response.ok || payload?.ok === false) {
@@ -784,12 +778,12 @@ function ScheduledRequests({ requests, loading, error, allowedItems, onRefresh }
 }
 
 // Final confirmation view after booking, including payment status context.
-function ConfirmationPanel({ details, onBack, onEdit, allowedItems }) {
-  if (!details) return null
-
+function ConfirmationPanel({ details, allowedItems }) {
   const itemLabel = useMemo(() => {
-    return allowedItems.find(i => i.id === details.request.itemType)?.label || details.request.itemType
-  }, [allowedItems, details.request.itemType])
+    return allowedItems.find(i => i.id === details?.request?.itemType)?.label || details?.request?.itemType || ''
+  }, [allowedItems, details?.request?.itemType])
+
+  if (!details) return null
 
   const scheduledDate = details.scheduled?.date ? dayjs(details.scheduled.date).format('DD/MM/YYYY') : '—'
   const scheduledTime = details.scheduled?.time ? dayjs(`1970-01-01T${details.scheduled.time}`).format('hh:mm A') : '—'
@@ -1150,7 +1144,7 @@ export default function SpecialCollectionPage({ session, onSessionInvalid }) {
     setAvailabilityLoading(true)
 
     try {
-      const response = await fetch('/api/schedules/special/availability', {
+      const response = await apiFetch('/api/schedules/special/availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1220,7 +1214,7 @@ export default function SpecialCollectionPage({ session, onSessionInvalid }) {
         payload.deferPayment = true
       }
 
-      const response = await fetch('/api/schedules/special/confirm', {
+      const response = await apiFetch('/api/schedules/special/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -1308,7 +1302,7 @@ export default function SpecialCollectionPage({ session, onSessionInvalid }) {
         specialNotes: form.specialNotes,
       }
 
-      const response = await fetch('/api/schedules/special/payment/checkout', {
+      const response = await apiFetch('/api/schedules/special/payment/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -1433,8 +1427,6 @@ export default function SpecialCollectionPage({ session, onSessionInvalid }) {
             <ConfirmationPanel
               details={confirmation}
               allowedItems={allowedItems}
-              onBack={() => navigate(-1)}
-              onEdit={() => setFeedback(null)}
             />
           </Box>
         ) : (

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import { Alert, Box, Button, CircularProgress, Paper, Stack, TextField, Typography } from '@mui/material'
 import { ShieldCheck } from 'lucide-react'
+import { apiFetch } from '../../services/api.js'
 
 // Presents the login workflow for field teams and redirects after a successful sign-in.
 export default function LoginPage({ onLogin = () => {} }) {
@@ -30,7 +31,7 @@ export default function LoginPage({ onLogin = () => {} }) {
         setFeedback(null)
 
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await apiFetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form),
@@ -117,6 +118,9 @@ export default function LoginPage({ onLogin = () => {} }) {
                     </Typography>
                     <Typography variant="caption" color="text.secondary" textAlign="center">
                         New to Smart Waste? <RouterLink to="/register" className="text-brand-600 hover:text-brand-500">Create an account</RouterLink>.
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" textAlign="center">
+                        Demo: admin@smartwaste.lk / Admin@123 · resident@smartwaste.lk / Resident@123
                     </Typography>
                 </Stack>
             </Paper>

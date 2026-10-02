@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Chip, LinearProgress } from '@mui/material'
 import { AlertTriangle, CheckCircle2, Clock8, Loader2, MapPin, ThermometerSun } from 'lucide-react'
+import { apiFetch } from '../../services/api.js'
 
 // Hard-coded route context for the field collector mobile view.
 const TRUCK_ID = 'TRUCK-01'
@@ -20,7 +21,7 @@ export default function CollectorView() {
       try {
         setLoading(true)
         setBanner(null)
-        const response = await fetch(ROUTE_ENDPOINT)
+        const response = await apiFetch(ROUTE_ENDPOINT)
         if (!response.ok) {
           throw new Error(`Route fetch failed with status ${response.status}`)
         }
@@ -44,7 +45,7 @@ export default function CollectorView() {
     try {
       setPendingBin(binId)
       setBanner(null)
-      const res = await fetch('/api/ops/collections', {
+      const res = await apiFetch('/api/ops/collections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ binId, truckId: TRUCK_ID }),

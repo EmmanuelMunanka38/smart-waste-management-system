@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Card, CardContent, Chip, Divider, LinearProgress } from '@mui/material'
-import { Loader2, MapPinned, Share2, FileDown, ShieldCheck, Gauge, Timer, Route as RouteIcon, Truck } from 'lucide-react'
+import { Loader2, MapPinned, Share2, FileDown, ShieldCheck, Gauge, Timer, Route as RouteIcon, Truck, Flame } from 'lucide-react'
 import RouteMap from './RouteMap.jsx'
 import ZoneSelector from '../RouteOptimization/ZoneSelector.jsx'
 import MiniZoneMap from '../RouteOptimization/MiniZoneMap.jsx'
 import KpiCard from '../RouteOptimization/KpiCard.jsx'
 import SummaryCard from '../RouteOptimization/SummaryCard.jsx'
 import ProgressSteps from '../RouteOptimization/ProgressSteps.jsx'
+import { apiFetch } from '../../services/api.js'
+import { buildCollectionOpsReport, formatDuration } from './reporting.js'
 
 // Offline-friendly fallback cities used when the API catalogue is unavailable.
 const FALLBACK_CITIES = [
@@ -46,6 +48,8 @@ const PROGRESS_TEMPLATE = [
 
 const INITIAL_ZONE_DETAILS = Object.freeze({ totalBins: '—', areaSize: '—', population: '—', lastCollection: '—' })
 const DEFAULT_CAPACITY = 3000
+const FUEL_BURN_RATE_L_PER_KM = 0.35
+const HIGH_PRIORITY_RATIO = 0.4
 const OPTIMIZE_ENDPOINT = '/api/ops/routes/optimize'
 const CITIES_ENDPOINT = '/api/ops/cities'
 const BINS_ENDPOINT = '/api/ops/bins'
@@ -81,8 +85,17 @@ export default function ManageCollectionOpsPage() {
   const [cities, setCities] = useState([])
   const [city, setCity] = useState('')
   const [plan, setPlan] = useState(null)
+  const [planFetching, setPlanFetching] = useState(false)
   const [directions, setDirections] = useState(null)
   const [bins, setBins] = useState([])
+  const [summaryMetrics, setSummaryMetrics] = useState({
+    activeZones: null,
+    totalZones: null,
+    availableTrucks: null,
+    fleetSize: null,
+    engagedTrucks: null,
+    totalBins: null,
+  })
   const [zoneDetails, setZoneDetails] = useState(INITIAL_ZONE_DETAILS)
   const [progressSteps, setProgressSteps] = useState(createProgressState())
   const [loading, setLoading] = useState(false)
@@ -96,7 +109,7 @@ export default function ManageCollectionOpsPage() {
 
   const loadSummary = useCallback(async ({ signal } = {}) => {
     try {
-      const res = await fetch('/api/ops/summary', { signal })
+      const res = await apiFetch('/api/ops/summary', { signal })
       if (!res.ok) {
         throw new Error(`Failed to load summary (${res.status})`)
       }
@@ -124,7 +137,7 @@ export default function ManageCollectionOpsPage() {
   const fetchDirections = useCallback(async (truckId, { signal } = {}) => {
     if (!truckId) return null
     try {
-      const dirRes = await fetch(`/api/ops/routes/${encodeURIComponent(truckId)}/directions`, { signal })
+      const dirRes = await apiFetch(`/api/ops/routes/${encodeURIComponent(truckId)}/directions`, { signal })
       if (!dirRes.ok) {
         throw new Error(`Directions failed (${dirRes.status})`)
       }
@@ -149,7 +162,7 @@ export default function ManageCollectionOpsPage() {
     setPlanFetching(true)
 
     try {
-      const res = await fetch(`/api/ops/routes/by-city?city=${encodeURIComponent(targetCity)}`, { signal })
+      const res = await apiFetch(`/api/ops/routes/by-city?city=${encodeURIComponent(targetCity)}`, { signal })
       if (signal?.aborted) {
         return
       }
@@ -221,7 +234,7 @@ export default function ManageCollectionOpsPage() {
     let ignore = false
     async function loadCities() {
       try {
-  const res = await fetch(CITIES_ENDPOINT)
+  const res = await apiFetch(CITIES_ENDPOINT)
         if (!res.ok) {
           throw new Error(`Failed to load cities (${res.status})`)
         }
@@ -256,7 +269,7 @@ export default function ManageCollectionOpsPage() {
 
     async function loadBins() {
       try {
-  const res = await fetch(`${BINS_ENDPOINT}?city=${encodeURIComponent(city)}`)
+  const res = await apiFetch(`${BINS_ENDPOINT}?city=${encodeURIComponent(city)}`)
         if (!res.ok) {
           throw new Error(`Failed to load bins (${res.status})`)
         }
@@ -346,7 +359,7 @@ export default function ManageCollectionOpsPage() {
     // Immediately transition the progress timeline so operators see feedback before the request resolves.
     setProgressSteps(createProgressState(0))
     try {
-      const res = await fetch(OPTIMIZE_ENDPOINT, {
+      const res = await apiFetch(OPTIMIZE_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ city }),
@@ -375,7 +388,7 @@ export default function ManageCollectionOpsPage() {
 
       if (normalized.truckId) {
         try {
-          const dirRes = await fetch(`${DIRECTIONS_ENDPOINT}/${encodeURIComponent(normalized.truckId)}/directions`)
+          const dirRes = await apiFetch(`${DIRECTIONS_ENDPOINT}/${encodeURIComponent(normalized.truckId)}/directions`)
           if (!dirRes.ok) {
             throw new Error(`Directions failed (${dirRes.status})`)
           }
@@ -398,7 +411,7 @@ export default function ManageCollectionOpsPage() {
     } finally {
       setLoading(false)
     }
-  }, [city, selectedCity])
+  }, [city, selectedCity, loadSummary])
 
   const markCollected = useCallback(async binId => {
     if (!binId) return
@@ -410,7 +423,7 @@ export default function ManageCollectionOpsPage() {
     try {
       setPendingBin(binId)
       setCollectorBanner(null)
-      const res = await fetch('/api/ops/collections', {
+      const res = await apiFetch('/api/ops/collections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ binId, truckId: plan.truckId }),

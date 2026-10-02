@@ -7,7 +7,7 @@
  * @component
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import {
   Button,
@@ -78,7 +78,7 @@ function ReportFilters({
   const handleSubmit = useCallback(
     (event) => {
       event.preventDefault();
-      onSubmit();
+      onSubmit(event);
     },
     [onSubmit]
   );

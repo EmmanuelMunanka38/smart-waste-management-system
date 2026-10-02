@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { Alert, Box, Button, CircularProgress, Checkbox, FormControlLabel, Paper, Stack, TextField, Typography } from '@mui/material'
 import { UserPlus } from 'lucide-react'
+import { apiFetch } from '../../services/api.js'
 
 const INITIAL_FORM = Object.freeze({ name: '', email: '', password: '', confirmPassword: '' })
 
@@ -49,7 +50,7 @@ export default function RegisterPage({ onRegister = () => {} }) {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await apiFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

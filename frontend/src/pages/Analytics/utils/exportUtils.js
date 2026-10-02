@@ -18,7 +18,7 @@ class ExportStrategy {
    * @param {Object} report - Report data to export
    * @param {String} filename - Name of the file to generate
    */
-  export(report, filename) {
+  export(_report, _filename) {
     throw new Error('Export method must be implemented by subclass');
   }
 }

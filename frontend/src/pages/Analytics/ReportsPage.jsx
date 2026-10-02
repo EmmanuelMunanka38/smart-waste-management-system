@@ -4,15 +4,9 @@ import { Save, SlidersHorizontal, BarChart3, LineChart, PieChart, Download } fro
 import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
 import PropTypes from 'prop-types'
+import { apiFetch } from '../../services/api.js'
 
 // Controls which analytical widgets appear in the generated report view.
-const sectionSwitches = [
-  { key: 'households', label: 'Household table' },
-  { key: 'regions', label: 'Region breakdown' },
-  { key: 'wasteTypes', label: 'Waste composition' },
-  { key: 'timeline', label: 'Trend timeline' },
-]
-
 const defaultVisibility = {
   households: true,
   regions: true,
@@ -87,20 +81,38 @@ export default function ReportsPage({ session }) {
 
   // Fetch the available filters (regions, waste types, etc.) once when the page loads.
   useEffect(() => {
+    let active = true
     async function loadConfig() {
       setLoadingConfig(true)
       try {
-        exportReport(format, report);
+        const response = await apiFetch('/api/analytics/config')
+        const payload = await response.json()
+        if (!response.ok) {
+          throw new Error(payload.message || 'Unable to load analytics configuration')
+        }
+        if (!active) return
+        setConfig(payload.filters)
+        const range = payload.filters?.defaultDateRange
+        if (range?.from && range?.to) {
+          setFilters(previous => ({ ...previous, from: range.from, to: range.to }))
+        }
       } catch (err) {
-        setError(err.message);
+        if (active) setError(err.message)
+      } finally {
+        if (active) setLoadingConfig(false)
       }
     }
     loadConfig()
+    return () => { active = false }
   }, [])
 
-  const handleFilterChange = useCallback(event => {
-    const { name, value } = event.target
-    setFilters(prev => ({ ...prev, [name]: value }))
+  const handleFilterChange = useCallback((eventOrName, value) => {
+    if (typeof eventOrName === 'string') {
+      setFilters(prev => ({ ...prev, [eventOrName]: value }))
+      return
+    }
+    const { name, value: nextValue } = eventOrName.target
+    setFilters(prev => ({ ...prev, [name]: nextValue }))
   }, [])
 
   const toggleVisibility = useCallback(key => {
@@ -137,7 +149,7 @@ export default function ReportsPage({ session }) {
         },
       }
 
-      const response = await fetch('/api/analytics/report', {
+      const response = await apiFetch('/api/analytics/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -158,8 +170,6 @@ export default function ReportsPage({ session }) {
       setLoadingReport(false)
     }
   }, [filters.billingModels, filters.from, filters.regions, filters.to, filters.wasteTypes, sessionUserId])
-
-  const canExport = Boolean(report)
 
   // Export the generated analytics to either PDF or Excel for sharing with stakeholders.
   const handleExport = useCallback(format => {
@@ -262,10 +272,10 @@ export default function ReportsPage({ session }) {
         <ReportFilters
           config={config}
           filters={filters}
-          onFilterChange={updateFilter}
+          onFilterChange={handleFilterChange}
           visibility={visibility}
           onVisibilityToggle={toggleVisibility}
-          onSubmit={generateReport}
+          onSubmit={handleSubmit}
           loading={loadingReport}
           loadingConfig={loadingConfig}
         />

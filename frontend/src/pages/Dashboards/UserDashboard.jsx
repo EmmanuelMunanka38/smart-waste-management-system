@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Divider, Drawer, IconButton, Stack, Tooltip, Typography, useMediaQuery, useTheme, } from '@mui/material'
 import { CalendarClock, ChevronLeft, ChevronRight, History, Menu, RefreshCcw, Wallet, X, } from 'lucide-react'
 import BillingPage from '../Billing/BillingPage.jsx'
+import { apiFetch } from '../../services/api.js'
 
 // Static navigation model for the end-user dashboard sections.
 const dashboardSections = Object.freeze([
@@ -129,8 +130,8 @@ function useSchedulingData(session) {
     setError(null)
     try {
       const [configResponse, requestsResponse] = await Promise.all([
-        fetch('/api/schedules/special/config'),
-        fetch(`/api/schedules/special/my?userId=${encodeURIComponent(userId)}`),
+        apiFetch('/api/schedules/special/config'),
+        apiFetch(`/api/schedules/special/my?userId=${encodeURIComponent(userId)}`),
       ])
 
       const configPayload = await readJson(configResponse)

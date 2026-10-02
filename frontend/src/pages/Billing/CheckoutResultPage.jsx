@@ -5,6 +5,7 @@ import { RotateCcw, XCircle } from 'lucide-react'
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom'
 import ConfirmationIllustration from '../../assets/Confirmation.png'
 import SpecialCollectionPaymentSuccessCard from '../../components/SpecialCollectionPaymentSuccessCard.jsx'
+import { apiFetch } from '../../services/api.js'
 
 function ResultStatus({ status }) {
   if (status === 'success') {
@@ -69,7 +70,7 @@ export default function CheckoutResultPage({ session = null }) {
     async function syncSession() {
       try {
         setLoading(true)
-        const response = await fetch(`/api/billing/checkout/${sessionId}`)
+        const response = await apiFetch(`/api/billing/checkout/${sessionId}`)
         const payload = await response.json()
         if (!response.ok) {
           throw new Error(payload.message || 'Unable to sync checkout session')
@@ -122,7 +123,7 @@ export default function CheckoutResultPage({ session = null }) {
 
     try {
       setDownloadPending(true)
-      const response = await fetch(`/api/schedules/special/requests/${requestId}/receipt?userId=${encodeURIComponent(userId)}`, {
+      const response = await apiFetch(`/api/schedules/special/requests/${requestId}/receipt?userId=${encodeURIComponent(userId)}`, {
         headers: {
           Accept: 'application/pdf',
         },

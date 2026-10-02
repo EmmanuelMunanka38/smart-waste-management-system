@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Divider, FormControl, Grid, IconButton, InputLabel, MenuItem, Select, Stack, Tooltip, Typography } from '@mui/material'
 import { Banknote, CreditCard, Download, ExternalLink, Receipt, RefreshCcw, Wallet } from 'lucide-react'
+import { apiFetch } from '../../services/api.js'
 
 // Cache currency formatter instances so repeated renders avoid recreating Intl objects.
 const CURRENCY_FORMATTERS = new Map()
@@ -229,7 +230,7 @@ export default function BillingPage({ session = null, variant = 'page' }) {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/billing/bills?userId=${userId}`)
+      const response = await apiFetch(`/api/billing/bills?userId=${userId}`)
       const payload = await response.json()
       if (!response.ok) {
         throw new Error(payload.message || 'Unable to load billing data')
@@ -283,7 +284,7 @@ export default function BillingPage({ session = null, variant = 'page' }) {
         paymentMethods: [selectedMethods[bill._id] || 'card'],
       }
 
-      const response = await fetch('/api/billing/checkout', {
+      const response = await apiFetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -304,7 +305,7 @@ export default function BillingPage({ session = null, variant = 'page' }) {
     if (!transactionId) return
     setReceiptFeedback(null)
     try {
-      const response = await fetch(`/api/billing/transactions/${transactionId}/receipt?userId=${userId}`)
+      const response = await apiFetch(`/api/billing/transactions/${transactionId}/receipt?userId=${userId}`)
       const payload = await response.json()
       if (!response.ok) {
         throw new Error(payload.message || 'Unable to fetch receipt')

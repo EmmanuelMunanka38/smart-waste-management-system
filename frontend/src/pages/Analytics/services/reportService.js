@@ -5,6 +5,7 @@
  * Follows the Single Responsibility Principle by separating
  * data fetching logic from component logic.
  */
+import { apiFetch } from '../../../services/api.js'
 
 /**
  * API endpoints configuration
@@ -43,7 +44,7 @@ class ApiError extends Error {
  */
 export async function fetchAnalyticsConfig() {
   try {
-    const response = await fetch(API_ENDPOINTS.CONFIG);
+    const response = await apiFetch(API_ENDPOINTS.CONFIG);
     const data = await response.json();
 
     if (!response.ok) {
@@ -78,7 +79,7 @@ export async function generateWasteReport(userId, criteria) {
       criteria,
     };
 
-    const response = await fetch(API_ENDPOINTS.REPORT, {
+    const response = await apiFetch(API_ENDPOINTS.REPORT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
